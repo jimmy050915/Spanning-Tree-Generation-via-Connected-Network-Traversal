@@ -16,6 +16,7 @@ namespace novel {
 
 class GraphTestAccess;
 class GraphStatisticsBuilder;
+class NovelRelationProject;
 struct StatisticsSnapshot;
 
 class AdjacencyMultilistGraph final : public IGraphView {
@@ -77,6 +78,7 @@ private:
 
     friend class GraphTestAccess;
     friend class GraphStatisticsBuilder;
+    friend class NovelRelationProject;
 };
 
 }  // namespace novel

@@ -27,6 +27,12 @@ add_library(novel_relation_domain
     src/domain/traversal/ChildListTree.cpp
     src/domain/traversal/GraphTraversal.cpp
     src/domain/validation/ValidationReport.cpp
+    src/infrastructure/persistence/BinaryProjectSerializer.cpp
+    src/infrastructure/persistence/Sha256.cpp
+    src/infrastructure/text/ChapterTextParser.cpp
+    src/infrastructure/text/DictionaryNameExtractor.cpp
+    src/infrastructure/text/DictionaryTextParser.cpp
+    src/infrastructure/text/Utf8TextFileLoader.cpp
 )
 target_include_directories(novel_relation_domain PUBLIC src)
 target_compile_features(novel_relation_domain PUBLIC cxx_std_17)
@@ -54,4 +60,14 @@ if(BUILD_TESTING)
     target_link_libraries(domain_phase_three_tests PRIVATE novel_relation_domain)
     enable_project_warnings(domain_phase_three_tests)
     add_test(NAME domain_phase_three_tests COMMAND domain_phase_three_tests)
+
+    add_executable(infrastructure_phase_four_tests
+        tests/infrastructure/test_phase_four.cpp
+    )
+    target_link_libraries(infrastructure_phase_four_tests
+        PRIVATE novel_relation_domain
+    )
+    enable_project_warnings(infrastructure_phase_four_tests)
+    add_test(NAME infrastructure_phase_four_tests
+             COMMAND infrastructure_phase_four_tests)
 endif()

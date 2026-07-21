@@ -3,6 +3,7 @@
 #include "domain/alias/AliasDictionary.h"
 #include "domain/chapter/ChapterCollection.h"
 #include "domain/graph/AdjacencyMultilistGraph.h"
+#include "domain/model/ProjectSnapshot.h"
 #include "domain/validation/ValidationReport.h"
 
 #include <optional>
@@ -14,6 +15,14 @@ class ProjectTestAccess;
 
 class NovelRelationProject {
 public:
+    NovelRelationProject() = default;
+    ~NovelRelationProject() = default;
+
+    NovelRelationProject(const NovelRelationProject&) = delete;
+    NovelRelationProject& operator=(const NovelRelationProject&) = delete;
+    NovelRelationProject(NovelRelationProject&&) noexcept = default;
+    NovelRelationProject& operator=(NovelRelationProject&&) noexcept = default;
+
     const AdjacencyMultilistGraph& graph() const noexcept;
     const ChapterCollection& chapters() const noexcept;
     const AliasDictionary& aliases() const noexcept;
@@ -32,6 +41,9 @@ public:
     void rebuildStatistics();
 
     ValidationReport validate() const;
+
+    ProjectSnapshot snapshot() const;
+    static NovelRelationProject fromSnapshot(ProjectSnapshot snapshot);
 
 private:
     AdjacencyMultilistGraph graph_;

@@ -10,6 +10,8 @@
 
 namespace novel {
 
+class NovelRelationProject;
+
 class ChapterCollection {
 public:
     ChapterId add(ChapterDraft draft);
@@ -33,6 +35,8 @@ private:
     static bool isBlank(const std::string& value) noexcept;
     static void normalizePersons(std::vector<PersonId>& persons);
     static ChapterRecord makeRecord(ChapterId id, ChapterDraft draft);
+
+    friend class NovelRelationProject;
 };
 
 void swap(ChapterCollection& first, ChapterCollection& second) noexcept;
