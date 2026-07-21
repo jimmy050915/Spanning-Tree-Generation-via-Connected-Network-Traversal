@@ -21,6 +21,9 @@ enum class DomainErrorCode {
     InvalidCoChapterCount,
     InvalidStatistics,
     IdentifierExhausted,
+    DuplicateTreeNode,
+    TreeNodeNotFound,
+    InvalidTreeRelation,
     GraphValidationFailed,
     ProjectValidationFailed
 };

@@ -2,6 +2,7 @@
 
 #include "domain/error/DomainError.h"
 #include "domain/model/GraphTypes.h"
+#include "domain/traversal/IGraphView.h"
 #include "domain/validation/ValidationReport.h"
 
 #include <cstddef>
@@ -17,10 +18,10 @@ class GraphTestAccess;
 class GraphStatisticsBuilder;
 struct StatisticsSnapshot;
 
-class AdjacencyMultilistGraph {
+class AdjacencyMultilistGraph final : public IGraphView {
 public:
     AdjacencyMultilistGraph() = default;
-    ~AdjacencyMultilistGraph() = default;
+    ~AdjacencyMultilistGraph() override = default;
 
     AdjacencyMultilistGraph(const AdjacencyMultilistGraph&) = delete;
     AdjacencyMultilistGraph& operator=(const AdjacencyMultilistGraph&) = delete;
@@ -42,7 +43,8 @@ public:
         const std::string& canonicalName) const noexcept;
     const EdgeNode* findEdge(PersonId first, PersonId second) const noexcept;
 
-    std::vector<PersonId> neighbors(PersonId id) const;
+    std::vector<PersonId> vertices() const override;
+    std::vector<PersonId> neighbors(PersonId id) const override;
     std::vector<PersonId> personIds() const;
     std::vector<EdgeKey> edgeKeys() const;
 

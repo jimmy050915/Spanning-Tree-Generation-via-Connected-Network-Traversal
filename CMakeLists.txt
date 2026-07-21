@@ -24,6 +24,8 @@ add_library(novel_relation_domain
     src/domain/graph/AdjacencyMultilistGraph.cpp
     src/domain/project/NovelRelationProject.cpp
     src/domain/statistics/GraphStatisticsBuilder.cpp
+    src/domain/traversal/ChildListTree.cpp
+    src/domain/traversal/GraphTraversal.cpp
     src/domain/validation/ValidationReport.cpp
 )
 target_include_directories(novel_relation_domain PUBLIC src)
@@ -45,4 +47,11 @@ if(BUILD_TESTING)
     target_link_libraries(domain_phase_two_tests PRIVATE novel_relation_domain)
     enable_project_warnings(domain_phase_two_tests)
     add_test(NAME domain_phase_two_tests COMMAND domain_phase_two_tests)
+
+    add_executable(domain_phase_three_tests
+        tests/domain/test_phase_three.cpp
+    )
+    target_link_libraries(domain_phase_three_tests PRIVATE novel_relation_domain)
+    enable_project_warnings(domain_phase_three_tests)
+    add_test(NAME domain_phase_three_tests COMMAND domain_phase_three_tests)
 endif()

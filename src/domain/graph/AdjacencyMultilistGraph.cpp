@@ -316,7 +316,7 @@ std::vector<PersonId> AdjacencyMultilistGraph::neighbors(PersonId id) const {
     return result;
 }
 
-std::vector<PersonId> AdjacencyMultilistGraph::personIds() const {
+std::vector<PersonId> AdjacencyMultilistGraph::vertices() const {
     std::vector<PersonId> result;
     result.reserve(persons_.size());
     for (const auto& entry : persons_) {
@@ -324,6 +324,10 @@ std::vector<PersonId> AdjacencyMultilistGraph::personIds() const {
     }
     std::sort(result.begin(), result.end());
     return result;
+}
+
+std::vector<PersonId> AdjacencyMultilistGraph::personIds() const {
+    return vertices();
 }
 
 std::vector<EdgeKey> AdjacencyMultilistGraph::edgeKeys() const {
