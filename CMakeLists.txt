@@ -19,7 +19,11 @@ function(enable_project_warnings target)
 endfunction()
 
 add_library(novel_relation_domain
+    src/domain/alias/AliasDictionary.cpp
+    src/domain/chapter/ChapterCollection.cpp
     src/domain/graph/AdjacencyMultilistGraph.cpp
+    src/domain/project/NovelRelationProject.cpp
+    src/domain/statistics/GraphStatisticsBuilder.cpp
     src/domain/validation/ValidationReport.cpp
 )
 target_include_directories(novel_relation_domain PUBLIC src)
@@ -34,4 +38,11 @@ if(BUILD_TESTING)
     target_link_libraries(domain_graph_tests PRIVATE novel_relation_domain)
     enable_project_warnings(domain_graph_tests)
     add_test(NAME domain_graph_tests COMMAND domain_graph_tests)
+
+    add_executable(domain_phase_two_tests
+        tests/domain/test_phase_two.cpp
+    )
+    target_link_libraries(domain_phase_two_tests PRIVATE novel_relation_domain)
+    enable_project_warnings(domain_phase_two_tests)
+    add_test(NAME domain_phase_two_tests COMMAND domain_phase_two_tests)
 endif()

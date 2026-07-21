@@ -1,5 +1,7 @@
 #include "domain/graph/AdjacencyMultilistGraph.h"
 
+#include "domain/statistics/GraphStatisticsBuilder.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -277,6 +279,12 @@ const PersonVertex* AdjacencyMultilistGraph::findPerson(PersonId id) const noexc
     return iterator == persons_.end() ? nullptr : iterator->second.get();
 }
 
+const PersonVertex* AdjacencyMultilistGraph::findPersonByName(
+    const std::string& canonicalName) const noexcept {
+    const auto name = personNameIndex_.find(canonicalName);
+    return name == personNameIndex_.end() ? nullptr : findPerson(name->second);
+}
+
 const EdgeNode* AdjacencyMultilistGraph::findEdge(PersonId first,
                                                   PersonId second) const noexcept {
     if (first == second) {
@@ -417,6 +425,133 @@ void AdjacencyMultilistGraph::recomputeIncidentJaccard(PersonId id) {
                                           otherPerson->second->chapterCount,
                                           edge->coChapterCount);
         edge = nextEdge(edge, id);
+    }
+}
+
+void AdjacencyMultilistGraph::replaceStatistics(
+    const StatisticsSnapshot& statistics) {
+    ensureValidState();
+
+    if (statistics.personCounts.size() != persons_.size()) {
+        throw DomainError(DomainErrorCode::InvalidStatistics,
+                          "统计快照未覆盖图中的全部人物");
+    }
+    for (const auto& personEntry : persons_) {
+        if (statistics.personCounts.find(personEntry.first) ==
+            statistics.personCounts.end()) {
+            throw DomainError(DomainErrorCode::InvalidStatistics,
+                              "统计快照缺少图中人物的章节数");
+        }
+    }
+
+    std::vector<EdgeKey> candidateKeys;
+    candidateKeys.reserve(statistics.coOccurrenceCounts.size());
+    for (const auto& countEntry : statistics.coOccurrenceCounts) {
+        if (countEntry.second == 0) {
+            continue;
+        }
+
+        const auto& key = countEntry.first;
+        if (key.low == key.high || key.low > key.high) {
+            throw DomainError(DomainErrorCode::InvalidStatistics,
+                              "统计快照中包含未规范化的人物关系");
+        }
+        const auto firstPerson = persons_.find(key.low);
+        const auto secondPerson = persons_.find(key.high);
+        if (firstPerson == persons_.end() || secondPerson == persons_.end()) {
+            throw DomainError(DomainErrorCode::PersonNotFound,
+                              "统计快照中的人物关系引用了不存在的人物");
+        }
+
+        const auto firstCount = statistics.personCounts.find(key.low);
+        const auto secondCount = statistics.personCounts.find(key.high);
+        if (firstCount == statistics.personCounts.end() ||
+            secondCount == statistics.personCounts.end() ||
+            countEntry.second > firstCount->second ||
+            countEntry.second > secondCount->second) {
+            throw DomainError(
+                DomainErrorCode::InvalidStatistics,
+                "共同章节数不能超过任一端点人物的出现章节数");
+        }
+        candidateKeys.push_back(key);
+    }
+
+    std::sort(candidateKeys.begin(),
+              candidateKeys.end(),
+              [](const EdgeKey& left, const EdgeKey& right) {
+                  return left.low < right.low ||
+                         (left.low == right.low && left.high < right.high);
+              });
+
+    decltype(edges_) candidateEdges;
+    candidateEdges.reserve(candidateKeys.size());
+    std::unordered_map<PersonId, EdgeNode*> candidateHeads;
+    candidateHeads.reserve(persons_.size());
+    for (const auto& personEntry : persons_) {
+        candidateHeads.emplace(personEntry.first, nullptr);
+    }
+
+    EdgeId candidateNextEdgeId = nextEdgeId_;
+    for (const auto& key : candidateKeys) {
+        EdgeId edgeId{};
+        const auto existingEdge = edges_.find(key);
+        if (existingEdge != edges_.end()) {
+            edgeId = existingEdge->second->id;
+        } else {
+            if (candidateNextEdgeId == std::numeric_limits<EdgeId>::max()) {
+                throw DomainError(DomainErrorCode::IdentifierExhausted,
+                                  "关系边编号已经耗尽");
+            }
+            edgeId = candidateNextEdgeId;
+            ++candidateNextEdgeId;
+        }
+
+        const auto coChapterCount = statistics.coOccurrenceCounts.at(key);
+        const auto firstChapterCount = statistics.personCounts.at(key.low);
+        const auto secondChapterCount = statistics.personCounts.at(key.high);
+
+        auto edge = std::make_unique<EdgeNode>();
+        edge->id = edgeId;
+        edge->endpointA = key.low;
+        edge->endpointB = key.high;
+        edge->coChapterCount = coChapterCount;
+        edge->jaccard = calculateJaccard(firstChapterCount,
+                                          secondChapterCount,
+                                          coChapterCount);
+        edge->linkA = candidateHeads.at(key.low);
+        edge->linkB = candidateHeads.at(key.high);
+
+        auto* rawEdge = edge.get();
+        const auto insertion = candidateEdges.emplace(key, std::move(edge));
+        if (!insertion.second) {
+            throw DomainError(DomainErrorCode::InvalidStatistics,
+                              "统计快照中包含重复人物关系");
+        }
+        candidateHeads.at(key.low) = rawEdge;
+        candidateHeads.at(key.high) = rawEdge;
+    }
+
+    struct PersonStatisticsAssignment {
+        PersonVertex* person{};
+        std::uint32_t chapterCount{};
+        EdgeNode* firstEdge{};
+    };
+    std::vector<PersonStatisticsAssignment> assignments;
+    assignments.reserve(persons_.size());
+    for (const auto& personEntry : persons_) {
+        assignments.push_back(PersonStatisticsAssignment{
+            personEntry.second.get(),
+            statistics.personCounts.at(personEntry.first),
+            candidateHeads.at(personEntry.first)});
+    }
+
+    static_assert(noexcept(edges_.swap(candidateEdges)),
+                  "统计提交需要无异常的边容器交换");
+    edges_.swap(candidateEdges);
+    nextEdgeId_ = candidateNextEdgeId;
+    for (const auto& assignment : assignments) {
+        assignment.person->chapterCount = assignment.chapterCount;
+        assignment.person->firstEdge = assignment.firstEdge;
     }
 }
 

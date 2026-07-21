@@ -14,6 +14,8 @@
 namespace novel {
 
 class GraphTestAccess;
+class GraphStatisticsBuilder;
+struct StatisticsSnapshot;
 
 class AdjacencyMultilistGraph {
 public:
@@ -36,6 +38,8 @@ public:
     bool deleteEdge(PersonId first, PersonId second);
 
     const PersonVertex* findPerson(PersonId id) const noexcept;
+    const PersonVertex* findPersonByName(
+        const std::string& canonicalName) const noexcept;
     const EdgeNode* findEdge(PersonId first, PersonId second) const noexcept;
 
     std::vector<PersonId> neighbors(PersonId id) const;
@@ -66,9 +70,11 @@ private:
     bool unlinkFromVertex(PersonVertex& vertex, EdgeNode& target) noexcept;
     void eraseEdgeUnchecked(const EdgeKey& key);
     void recomputeIncidentJaccard(PersonId id);
+    void replaceStatistics(const StatisticsSnapshot& statistics);
     void ensureValidState() const;
 
     friend class GraphTestAccess;
+    friend class GraphStatisticsBuilder;
 };
 
 }  // namespace novel

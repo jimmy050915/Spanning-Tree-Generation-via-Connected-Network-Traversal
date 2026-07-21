@@ -10,12 +10,19 @@ enum class DomainErrorCode {
     EmptyPersonName,
     DuplicatePerson,
     PersonNotFound,
+    EmptyChapterKey,
+    DuplicateChapterKey,
+    EmptyAlias,
+    DuplicateAlias,
+    NameConflict,
+    PersonInUse,
     SelfLoop,
     DuplicateEdge,
     InvalidCoChapterCount,
     InvalidStatistics,
     IdentifierExhausted,
-    GraphValidationFailed
+    GraphValidationFailed,
+    ProjectValidationFailed
 };
 
 class DomainError final : public std::runtime_error {
