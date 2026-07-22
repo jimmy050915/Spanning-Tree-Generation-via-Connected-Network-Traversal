@@ -99,6 +99,10 @@ $qtPrefix = [System.IO.Path]::GetFullPath(
     (Join-Path $resolvedQt6Dir '..\..\..')
 )
 $qtBin = Join-Path $qtPrefix 'bin'
+$windeployqt = Join-Path $qtBin 'windeployqt.exe'
+if (-not (Test-Path -LiteralPath $windeployqt)) {
+    throw "未找到 Qt 部署工具：$windeployqt"
+}
 
 $drive = $null
 foreach ($candidate in @('R:', 'S:', 'T:', 'U:')) {
@@ -164,6 +168,31 @@ try {
     if ($LASTEXITCODE -ne 0) {
         throw "CTest 失败，退出码：$LASTEXITCODE"
     }
+
+    $applicationExecutable = Join-Path $buildDirectory 'novel_relation_app.exe'
+    & $windeployqt `
+        --compiler-runtime `
+        --no-translations `
+        $applicationExecutable
+    if ($LASTEXITCODE -ne 0) {
+        throw "Qt 运行库部署失败，退出码：$LASTEXITCODE"
+    }
+
+    foreach ($relativePath in @(
+        'Qt6Core.dll',
+        'Qt6Gui.dll',
+        'Qt6Widgets.dll',
+        'libgcc_s_seh-1.dll',
+        'libstdc++-6.dll',
+        'libwinpthread-1.dll',
+        'platforms\qwindows.dll'
+    )) {
+        $deployedPath = Join-Path $buildDirectory $relativePath
+        if (-not (Test-Path -LiteralPath $deployedPath)) {
+            throw "Qt 部署结果缺少运行文件：$deployedPath"
+        }
+    }
+    Write-Host "可直接运行：$applicationExecutable"
 } finally {
     $env:PATH = $oldPath
     if ($null -eq $oldQpaPlatform) {

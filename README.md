@@ -2,6 +2,16 @@
 
 当前仓库已完成开发文档中的第一至第六阶段，包括领域数据结构、章节与统计、图算法、文件系统、Qt 6 图形界面，以及测试与完善。正式实现位于根目录的 `src/domain`、`src/infrastructure`、`src/application` 与 `src/presentation`，`legacy/` 仅保留为早期邻接多重表原型，不参与正式构建。
 
+## 启动程序
+
+完成下方“构建与测试”后，可直接双击生成的 `novel_relation_app.exe`，或在项目根目录执行：
+
+```powershell
+.\build-qt-r\novel_relation_app.exe
+```
+
+构建脚本会自动部署 Qt、MinGW 运行库和 Windows 平台插件，无需手动修改 `PATH`。如果 `R:` 已被占用，请使用脚本输出的 `build-qt-s`、`build-qt-t` 或 `build-qt-u` 目录。
+
 ## 阶段一内容
 
 - 使用稳定 `PersonId` 的人物顶点。
@@ -110,10 +120,9 @@
 
 提交前仍应执行不带 `-TestLabel` 的完整验证。
 
-验证后，将 Qt 和匹配的 MinGW `bin` 目录加入当前进程的 `PATH`，再启动实际生成目录中的程序，例如：
+验证后可直接启动实际生成目录中的程序，例如：
 
 ```powershell
-$env:PATH = 'C:\Qt\Tools\mingw1310_64\bin;C:\Qt\6.8.3\mingw_64\bin;' + $env:PATH
 .\build-qt-r\novel_relation_app.exe
 ```
 
