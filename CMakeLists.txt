@@ -10,6 +10,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(Qt6 6 REQUIRED COMPONENTS Widgets)
+qt_standard_project_setup()
+
 function(enable_project_warnings target)
     if(MSVC)
         target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8)
@@ -38,8 +41,66 @@ target_include_directories(novel_relation_domain PUBLIC src)
 target_compile_features(novel_relation_domain PUBLIC cxx_std_17)
 enable_project_warnings(novel_relation_domain)
 
+add_library(novel_relation_application
+    src/application/ProjectApplicationService.cpp
+)
+target_include_directories(novel_relation_application PUBLIC src)
+target_link_libraries(novel_relation_application PUBLIC novel_relation_domain)
+target_compile_features(novel_relation_application PUBLIC cxx_std_17)
+enable_project_warnings(novel_relation_application)
+
+add_library(novel_relation_presentation
+    src/presentation/MainWindow.cpp
+    src/presentation/MainWindow.h
+    src/presentation/dialogs/AliasManagementDialog.cpp
+    src/presentation/dialogs/AliasManagementDialog.h
+    src/presentation/dialogs/ChapterEditorDialog.cpp
+    src/presentation/dialogs/ChapterEditorDialog.h
+    src/presentation/dialogs/DialogData.h
+    src/presentation/dialogs/NewProjectDialog.cpp
+    src/presentation/dialogs/NewProjectDialog.h
+    src/presentation/dialogs/PersonManagementDialog.cpp
+    src/presentation/dialogs/PersonManagementDialog.h
+    src/presentation/graphics/PersonNodeItem.cpp
+    src/presentation/graphics/PersonNodeItem.h
+    src/presentation/graphics/RelationEdgeItem.cpp
+    src/presentation/graphics/RelationEdgeItem.h
+    src/presentation/graphics/RelationGraphSceneController.cpp
+    src/presentation/graphics/RelationGraphSceneController.h
+    src/presentation/graphics/RelationGraphView.cpp
+    src/presentation/graphics/RelationGraphView.h
+    src/presentation/graphics/TraversalTreeSceneController.cpp
+    src/presentation/graphics/TraversalTreeSceneController.h
+    src/presentation/graphics/TraversalTreeView.cpp
+    src/presentation/graphics/TraversalTreeView.h
+    src/presentation/interaction/IUserInteraction.h
+    src/presentation/interaction/QtUserInteraction.cpp
+    src/presentation/interaction/QtUserInteraction.h
+    src/presentation/models/ChapterTableModel.cpp
+    src/presentation/models/ChapterTableModel.h
+    src/presentation/models/PersonTableModel.cpp
+    src/presentation/models/PersonTableModel.h
+    src/presentation/models/RelationTableModel.cpp
+    src/presentation/models/RelationTableModel.h
+    src/presentation/models/SearchSortProxyModel.cpp
+    src/presentation/models/SearchSortProxyModel.h
+    src/presentation/models/UiRows.h
+)
+target_include_directories(novel_relation_presentation PUBLIC src)
+target_link_libraries(novel_relation_presentation
+    PUBLIC novel_relation_application Qt6::Widgets
+)
+target_compile_features(novel_relation_presentation PUBLIC cxx_std_17)
+enable_project_warnings(novel_relation_presentation)
+
+add_executable(novel_relation_app WIN32 src/main.cpp)
+target_link_libraries(novel_relation_app PRIVATE novel_relation_presentation)
+enable_project_warnings(novel_relation_app)
+
 include(CTest)
 if(BUILD_TESTING)
+    find_package(Qt6 6 REQUIRED COMPONENTS Test)
+
     add_executable(domain_graph_tests
         tests/domain/test_adjacency_multilist_graph.cpp
     )
@@ -70,4 +131,40 @@ if(BUILD_TESTING)
     enable_project_warnings(infrastructure_phase_four_tests)
     add_test(NAME infrastructure_phase_four_tests
              COMMAND infrastructure_phase_four_tests)
+
+    add_executable(application_phase_five_tests
+        tests/application/test_phase_five_application.cpp
+    )
+    target_link_libraries(application_phase_five_tests
+        PRIVATE novel_relation_application
+    )
+    enable_project_warnings(application_phase_five_tests)
+    add_test(NAME application_phase_five_tests
+             COMMAND application_phase_five_tests)
+
+    add_executable(presentation_graphics_phase_five_tests
+        tests/presentation/test_graphics_phase_five.cpp
+    )
+    target_link_libraries(presentation_graphics_phase_five_tests
+        PRIVATE novel_relation_presentation Qt6::Test Qt6::Widgets
+    )
+    enable_project_warnings(presentation_graphics_phase_five_tests)
+    add_test(NAME presentation_graphics_phase_five_tests
+             COMMAND presentation_graphics_phase_five_tests)
+    set_tests_properties(presentation_graphics_phase_five_tests PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
+
+    add_executable(presentation_ui_phase_five_tests
+        tests/presentation/test_ui_phase_five.cpp
+    )
+    target_link_libraries(presentation_ui_phase_five_tests
+        PRIVATE novel_relation_presentation Qt6::Test Qt6::Widgets
+    )
+    enable_project_warnings(presentation_ui_phase_five_tests)
+    add_test(NAME presentation_ui_phase_five_tests
+             COMMAND presentation_ui_phase_five_tests)
+    set_tests_properties(presentation_ui_phase_five_tests PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
 endif()

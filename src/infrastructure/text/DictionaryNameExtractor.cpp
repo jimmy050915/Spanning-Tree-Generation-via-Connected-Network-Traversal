@@ -52,7 +52,8 @@ DictionaryNameExtractor::DictionaryNameExtractor(
                 "名称“" + person->canonicalName + "”指向多个不同人物");
         }
         if (insertion.second) {
-            entries_.push_back(Entry{person->canonicalName, id});
+            entries_.push_back(
+                Entry{person->canonicalName, id, person->canonicalName, false});
         }
     }
 
@@ -74,7 +75,9 @@ DictionaryNameExtractor::DictionaryNameExtractor(
             }
             continue;
         }
-        entries_.push_back(Entry{alias.first, alias.second});
+        const auto* target = project.graph().findPerson(alias.second);
+        entries_.push_back(
+            Entry{alias.first, alias.second, target->canonicalName, true});
     }
 
     std::sort(entries_.begin(), entries_.end(), [](const Entry& left,
@@ -91,12 +94,27 @@ DictionaryNameExtractor::DictionaryNameExtractor(
 
 std::vector<PersonId> DictionaryNameExtractor::extract(
     std::string_view contentUtf8) const {
+    const auto matches = extractDetailed(contentUtf8);
+
+    std::unordered_set<PersonId> matchedPeople;
+    matchedPeople.reserve(matches.size());
+    for (const auto& match : matches) {
+        matchedPeople.insert(match.person);
+    }
+
+    std::vector<PersonId> result(matchedPeople.begin(), matchedPeople.end());
+    std::sort(result.begin(), result.end());
+    return result;
+}
+
+std::vector<DictionaryNameMatch> DictionaryNameExtractor::extractDetailed(
+    std::string_view contentUtf8) const {
     if (!isValidUtf8(contentUtf8)) {
         throw TextFileError(TextFileErrorCode::InvalidUtf8,
                             "待提取章节正文包含无效 UTF-8 字节序列");
     }
 
-    std::unordered_set<PersonId> matchedPeople;
+    std::vector<DictionaryNameMatch> matches;
     std::size_t offset = 0;
     while (offset < contentUtf8.size()) {
         const Entry* match = nullptr;
@@ -112,13 +130,15 @@ std::vector<PersonId> DictionaryNameExtractor::extract(
             ++offset;
             continue;
         }
-        matchedPeople.insert(match->person);
+        matches.push_back(DictionaryNameMatch{match->text,
+                                              match->person,
+                                              match->canonicalName,
+                                              match->isAlias,
+                                              offset,
+                                              match->text.size()});
         offset += match->text.size();
     }
-
-    std::vector<PersonId> result(matchedPeople.begin(), matchedPeople.end());
-    std::sort(result.begin(), result.end());
-    return result;
+    return matches;
 }
 
 }  // namespace novel
