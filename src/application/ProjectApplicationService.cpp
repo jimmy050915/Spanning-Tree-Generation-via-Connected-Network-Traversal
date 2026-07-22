@@ -663,6 +663,19 @@ Result<PersonId> ProjectApplicationService::addPerson(
         requireUtf8(canonicalName, "标准人物名");
         NovelRelationProject candidate = cloneProject(project_);
         const PersonId id = candidate.addPerson(canonicalName);
+
+        const DictionaryNameExtractor extractor(candidate);
+        std::vector<ChapterId> matchingChapters;
+        matchingChapters.reserve(candidate.chapters().size());
+        for (const auto& chapter : candidate.chapters().all()) {
+            const auto extracted = extractor.extract(chapter.contentUtf8);
+            if (std::find(extracted.begin(), extracted.end(), id) !=
+                extracted.end()) {
+                matchingChapters.push_back(chapter.id);
+            }
+        }
+        candidate.addPersonToChapters(id, matchingChapters);
+
         requireValid(candidate);
         project_ = std::move(candidate);
         dirty_ = true;

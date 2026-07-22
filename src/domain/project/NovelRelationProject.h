@@ -8,6 +8,7 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace novel {
 
@@ -38,6 +39,9 @@ public:
     ChapterId addChapter(ChapterDraft draft);
     bool modifyChapter(ChapterId id, ChapterDraft draft);
     bool removeChapter(ChapterId id);
+    std::size_t addPersonToChapters(
+        PersonId person,
+        const std::vector<ChapterId>& chapterIds);
     void rebuildStatistics();
 
     ValidationReport validate() const;

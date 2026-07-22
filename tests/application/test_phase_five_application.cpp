@@ -18,6 +18,7 @@ using novel::ChapterDraft;
 using novel::DictionaryNameExtractor;
 using novel::PersonId;
 using novel::application::ApplicationErrorCode;
+using novel::application::ChapterDetailDto;
 using novel::application::GraphSnapshotDto;
 using novel::application::ImportChapterCommand;
 using novel::application::ModifyChapterCommand;
@@ -443,6 +444,76 @@ void testMutationsAndFailureAtomicity(TestContext& context) {
                   "删除章节应重建统计并移除无共现关系");
 }
 
+void testAddingPersonIncrementallyExtractsExistingChapters(
+    TestContext& context) {
+    ProjectApplicationService service;
+    const auto retained = service.addPerson("人工保留");
+    context.check(retained.hasValue(), "准备人工保留人物应成功");
+    if (!retained) {
+        return;
+    }
+
+    ImportChapterCommand first;
+    first.key = "001";
+    first.title = "首次出现";
+    first.body = "林黛玉初进贾府。";
+    first.selectedPersonIds = {retained.value()};
+    const auto firstId = service.importChapter(first);
+
+    ImportChapterCommand second;
+    second.key = "002";
+    second.title = "再次出现";
+    second.body = "众人迎接林黛玉。";
+    const auto secondId = service.importChapter(second);
+
+    ImportChapterCommand unrelated;
+    unrelated.key = "003";
+    unrelated.title = "无关章节";
+    unrelated.body = "这里没有目标姓名。";
+    unrelated.selectedPersonIds = {retained.value()};
+    const auto unrelatedId = service.importChapter(unrelated);
+    context.check(firstId && secondId && unrelatedId,
+                  "准备既有章节应全部导入成功");
+    if (!firstId || !secondId || !unrelatedId) {
+        return;
+    }
+
+    const auto revisionBeforeAdd = service.status().revision;
+    const auto added = service.addPerson("林黛玉");
+    context.check(added && service.status().revision == revisionBeforeAdd + 1U,
+                  "新增人物和批量章节更新应作为一次事务提交");
+    if (!added) {
+        return;
+    }
+
+    const auto firstDetail = service.chapterDetail(firstId.value());
+    const auto secondDetail = service.chapterDetail(secondId.value());
+    const auto unrelatedDetail = service.chapterDetail(unrelatedId.value());
+    context.check(firstDetail && secondDetail && unrelatedDetail,
+                  "自动提取后全部章节详情应可读取");
+    if (!firstDetail || !secondDetail || !unrelatedDetail) {
+        return;
+    }
+
+    const auto containsPerson = [](const ChapterDetailDto& detail,
+                                   PersonId person) {
+        return std::any_of(detail.persons.begin(), detail.persons.end(),
+                           [person](const auto& row) {
+                               return row.id == person;
+                           });
+    };
+    context.check(containsPerson(firstDetail.value(), retained.value()) &&
+                      containsPerson(firstDetail.value(), added.value()) &&
+                      containsPerson(secondDetail.value(), added.value()) &&
+                      !containsPerson(unrelatedDetail.value(), added.value()),
+                  "新增人物应补入所有匹配章节且不得改动无关章节");
+
+    const auto addedDetail = service.personDetail(added.value());
+    context.check(addedDetail && addedDetail.value().chapters.size() == 2U &&
+                      service.status().relationCount == 1U,
+                  "自动提取后人物章节数和共现关系应立即更新");
+}
+
 void testPersistenceAndOpenAtomicity(TestContext& context,
                                      const TemporaryDirectory& temporary) {
     Fixture fixture(context);
@@ -544,6 +615,9 @@ int main() {
     });
     runCase(context, "修改和失败不变性", [&]() {
         testMutationsAndFailureAtomicity(context);
+    });
+    runCase(context, "新增人物自动提取既有章节", [&]() {
+        testAddingPersonIncrementallyExtractsExistingChapters(context);
     });
     runCase(context, "保存打开和失败不变性", [&]() {
         testPersistenceAndOpenAtomicity(context, temporary);

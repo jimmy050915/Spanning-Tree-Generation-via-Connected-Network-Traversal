@@ -133,9 +133,11 @@ if ($LASTEXITCODE -ne 0) {
 
 $oldPath = $env:PATH
 $oldQpaPlatform = $env:QT_QPA_PLATFORM
+$oldQpaPlatformPluginPath = $env:QT_QPA_PLATFORM_PLUGIN_PATH
 try {
     $env:PATH = "$resolvedMinGwBin;$qtBin;$oldPath"
     $env:QT_QPA_PLATFORM = 'offscreen'
+    $env:QT_QPA_PLATFORM_PLUGIN_PATH = Join-Path $qtPrefix 'plugins\platforms'
 
     & $cmake.Source `
         -S "${drive}\" `
@@ -199,6 +201,11 @@ try {
         Remove-Item Env:QT_QPA_PLATFORM -ErrorAction SilentlyContinue
     } else {
         $env:QT_QPA_PLATFORM = $oldQpaPlatform
+    }
+    if ($null -eq $oldQpaPlatformPluginPath) {
+        Remove-Item Env:QT_QPA_PLATFORM_PLUGIN_PATH -ErrorAction SilentlyContinue
+    } else {
+        $env:QT_QPA_PLATFORM_PLUGIN_PATH = $oldQpaPlatformPluginPath
     }
     subst.exe $drive /D | Out-Null
 }

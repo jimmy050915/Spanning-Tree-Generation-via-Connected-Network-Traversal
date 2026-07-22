@@ -849,15 +849,32 @@ void MainWindow::showPersonManagement() {
     dialog.setPeople(personChoices());
     connect(&dialog, &PersonManagementDialog::addPersonRequested, this,
             [this, &dialog](const QString& name) {
-                const auto outcome = service_.addPerson(toUtf8(name));
+                const auto outcome = [&] {
+                    BusyIndicator busy(
+                        this, tr("正在新增人物并扫描现有章节…"));
+                    return service_.addPerson(toUtf8(name));
+                }();
                 if (!outcome) {
                     reportError(tr("新增人物"), outcome.error());
                     return;
                 }
+                const auto detail = service_.personDetail(outcome.value());
+                const auto updatedChapterCount =
+                    detail ? detail.value().chapters.size() : std::size_t{};
                 refreshAll();
                 dialog.setPeople(personChoices());
-                appendLog(tr("信息"), tr("新增人物"),
-                          tr("已新增人物：%1").arg(name));
+                if (updatedChapterCount == 0U) {
+                    appendLog(
+                        tr("信息"), tr("新增人物"),
+                        tr("已新增人物：%1；现有章节中未识别到该名称。")
+                            .arg(name));
+                } else {
+                    appendLog(
+                        tr("信息"), tr("新增人物"),
+                        tr("已新增人物：%1；已自动更新 %2 个章节。")
+                            .arg(name)
+                            .arg(updatedChapterCount));
+                }
             });
     connect(&dialog, &PersonManagementDialog::renamePersonRequested, this,
             [this, &dialog](PersonId id, const QString& name) {

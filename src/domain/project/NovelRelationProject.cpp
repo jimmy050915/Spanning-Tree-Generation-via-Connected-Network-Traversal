@@ -140,6 +140,41 @@ bool NovelRelationProject::removeChapter(ChapterId id) {
     return true;
 }
 
+std::size_t NovelRelationProject::addPersonToChapters(
+    PersonId person,
+    const std::vector<ChapterId>& chapterIds) {
+    if (graph_.findPerson(person) == nullptr) {
+        throw DomainError(DomainErrorCode::PersonNotFound,
+                          "待补入章节的人物不存在：" +
+                              personDescription(person));
+    }
+
+    ChapterCollection candidate = chapters_;
+    std::size_t modifiedCount = 0;
+    for (const ChapterId chapterId : chapterIds) {
+        const auto* current = candidate.find(chapterId);
+        if (current == nullptr ||
+            std::find(current->persons.begin(), current->persons.end(), person) !=
+                current->persons.end()) {
+            continue;
+        }
+
+        ChapterDraft draft{current->chapterKey,
+                           current->title,
+                           current->sourceFileName,
+                           current->contentUtf8,
+                           current->persons};
+        draft.persons.push_back(person);
+        candidate.modify(chapterId, std::move(draft));
+        ++modifiedCount;
+    }
+
+    if (modifiedCount != 0U) {
+        rebuildAndCommit(std::move(candidate));
+    }
+    return modifiedCount;
+}
+
 void NovelRelationProject::rebuildStatistics() {
     GraphStatisticsBuilder::rebuild(graph_, chapters_);
 }
