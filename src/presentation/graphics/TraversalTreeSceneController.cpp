@@ -282,8 +282,10 @@ void TraversalTreeSceneController::setTraversal(
         if (parent == nullptr || child == nullptr) {
             continue;
         }
+        auto edgeColor = QApplication::palette().text().color();
+        edgeColor.setAlphaF(0.38);
         auto* line = scene_->addLine(QLineF(parent->pos(), child->pos()),
-                                     QPen(QApplication::palette().mid().color(), 1.5));
+                                     QPen(edgeColor, 1.6));
         line->setZValue(0.0);
         ++edgeCount_;
     }

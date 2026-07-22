@@ -6,6 +6,7 @@
 #include "presentation/graphics/TraversalTreeSceneController.h"
 #include "presentation/graphics/TraversalTreeView.h"
 
+#include <QGraphicsLineItem>
 #include <QGraphicsScene>
 #include <QSignalSpy>
 #include <QtTest>
@@ -193,6 +194,18 @@ void GraphicsPhaseFiveTest::traversalTreeUsesVirtualRootAndLayers() {
     QVERIFY(controller->nodePosition(0).y() < controller->nodePosition(1).y());
     QVERIFY(controller->nodePosition(1).y() < controller->nodePosition(2).y());
     QCOMPARE(controller->nodePosition(1).y(), controller->nodePosition(3).y());
+
+    int renderedLineCount = 0;
+    for (auto* item : view.scene()->items()) {
+        const auto* line = qgraphicsitem_cast<QGraphicsLineItem*>(item);
+        if (line == nullptr) {
+            continue;
+        }
+        ++renderedLineCount;
+        QVERIFY(line->pen().widthF() >= 1.5);
+        QVERIFY(line->pen().color().alphaF() >= 0.35);
+    }
+    QCOMPARE(renderedLineCount, 3);
 
     QSignalSpy selectedSpy(controller, &TraversalTreeSceneController::personSelected);
     QVERIFY(view.focusPerson(2));

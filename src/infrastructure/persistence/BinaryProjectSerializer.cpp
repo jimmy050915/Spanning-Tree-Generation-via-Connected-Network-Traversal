@@ -2,6 +2,7 @@
 
 #include "domain/error/DomainError.h"
 #include "domain/model/ProjectSnapshot.h"
+#include "infrastructure/persistence/AtomicSaveRecovery.h"
 #include "infrastructure/persistence/PersistenceError.h"
 #include "infrastructure/persistence/Sha256.h"
 #include "infrastructure/text/Utf8TextFileLoader.h"
@@ -791,10 +792,17 @@ void replaceWithBackup(const std::filesystem::path& temporary,
                      REPLACEFILE_WRITE_THROUGH,
                      nullptr,
                      nullptr) == 0) {
+        const auto systemError =
+            static_cast<std::uint32_t>(GetLastError());
+        const bool restored =
+            persistence_detail::recoverWindowsReplacementFailure(
+                systemError, target, backup);
         throw PersistenceError(
             PersistenceErrorCode::AtomicReplaceFailed,
-            "无法原子替换项目文件，旧文件未被修改，系统错误码：" +
-                std::to_string(static_cast<unsigned long>(GetLastError())));
+            std::string("无法原子替换项目文件，") +
+                (restored ? "旧文件已从备份恢复，系统错误码："
+                          : "旧文件未被修改，系统错误码：") +
+                std::to_string(systemError));
     }
 
     // Failure to remove a now-redundant backup must not turn a successfully
@@ -829,6 +837,36 @@ void replaceWithBackup(const std::filesystem::path& temporary,
 }
 
 }  // namespace
+
+bool persistence_detail::recoverWindowsReplacementFailure(
+    std::uint32_t systemError,
+    const std::filesystem::path& target,
+    const std::filesystem::path& backup) {
+#ifdef _WIN32
+    if (systemError != ERROR_UNABLE_TO_MOVE_REPLACEMENT_2) {
+        return false;
+    }
+
+    if (MoveFileExW(backup.c_str(),
+                    target.c_str(),
+                    MOVEFILE_WRITE_THROUGH) != 0) {
+        return true;
+    }
+
+    const auto restoreError =
+        static_cast<std::uint32_t>(GetLastError());
+    throw PersistenceError(
+        PersistenceErrorCode::AtomicReplaceFailed,
+        "原子替换失败后无法恢复旧项目文件；备份保留在：" +
+            backup.u8string() + "；恢复错误码：" +
+            std::to_string(restoreError));
+#else
+    static_cast<void>(systemError);
+    static_cast<void>(target);
+    static_cast<void>(backup);
+    return false;
+#endif
+}
 
 void BinaryProjectSerializer::save(const NovelRelationProject& project,
                                    const std::filesystem::path& path) const {

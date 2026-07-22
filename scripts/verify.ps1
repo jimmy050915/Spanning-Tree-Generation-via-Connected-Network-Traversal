@@ -1,6 +1,17 @@
 param(
     [string]$Qt6Dir = $env:Qt6_DIR,
-    [string]$QtMinGwBin = $env:QT_MINGW_BIN
+    [string]$QtMinGwBin = $env:QT_MINGW_BIN,
+    [ValidateSet(
+        'all',
+        'unit',
+        'integration',
+        'corruption',
+        'graph-validation',
+        'performance',
+        'user-flow',
+        'phase-six'
+    )]
+    [string]$TestLabel = 'all'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -107,6 +118,9 @@ $buildDirectory = "${drive}\build-qt-${driveSuffix}"
 
 Write-Host "Qt6_DIR: $resolvedQt6Dir"
 Write-Host "Qt MinGW: $resolvedMinGwBin"
+if ($TestLabel -ne 'all') {
+    Write-Host "CTest 标签过滤：$TestLabel"
+}
 
 subst.exe $drive $projectRoot
 if ($LASTEXITCODE -ne 0) {
@@ -137,7 +151,16 @@ try {
         throw "项目构建失败，退出码：$LASTEXITCODE"
     }
 
-    & $ctest.Source --test-dir $buildDirectory --output-on-failure
+    $ctestArguments = @(
+        '--test-dir', $buildDirectory,
+        '--output-on-failure',
+        '--no-tests=error'
+    )
+    if ($TestLabel -ne 'all') {
+        $ctestArguments += @('-L', $TestLabel)
+    }
+
+    & $ctest.Source @ctestArguments
     if ($LASTEXITCODE -ne 0) {
         throw "CTest 失败，退出码：$LASTEXITCODE"
     }

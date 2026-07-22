@@ -30,6 +30,7 @@ add_library(novel_relation_domain
     src/domain/traversal/ChildListTree.cpp
     src/domain/traversal/GraphTraversal.cpp
     src/domain/validation/ValidationReport.cpp
+    src/infrastructure/persistence/AtomicSaveRecovery.h
     src/infrastructure/persistence/BinaryProjectSerializer.cpp
     src/infrastructure/persistence/Sha256.cpp
     src/infrastructure/text/ChapterTextParser.cpp
@@ -107,6 +108,24 @@ if(BUILD_TESTING)
     target_link_libraries(domain_graph_tests PRIVATE novel_relation_domain)
     enable_project_warnings(domain_graph_tests)
     add_test(NAME domain_graph_tests COMMAND domain_graph_tests)
+    set_tests_properties(domain_graph_tests PROPERTIES
+        LABELS "unit;graph-validation"
+        TIMEOUT 30
+    )
+
+    add_executable(domain_phase_six_graph_validation_tests
+        tests/domain/test_phase_six_graph_validation.cpp
+    )
+    target_link_libraries(domain_phase_six_graph_validation_tests
+        PRIVATE novel_relation_domain
+    )
+    enable_project_warnings(domain_phase_six_graph_validation_tests)
+    add_test(NAME domain_phase_six_graph_validation_tests
+             COMMAND domain_phase_six_graph_validation_tests)
+    set_tests_properties(domain_phase_six_graph_validation_tests PROPERTIES
+        LABELS "unit;graph-validation;phase-six"
+        TIMEOUT 30
+    )
 
     add_executable(domain_phase_two_tests
         tests/domain/test_phase_two.cpp
@@ -114,6 +133,10 @@ if(BUILD_TESTING)
     target_link_libraries(domain_phase_two_tests PRIVATE novel_relation_domain)
     enable_project_warnings(domain_phase_two_tests)
     add_test(NAME domain_phase_two_tests COMMAND domain_phase_two_tests)
+    set_tests_properties(domain_phase_two_tests PROPERTIES
+        LABELS "unit;integration;graph-validation"
+        TIMEOUT 30
+    )
 
     add_executable(domain_phase_three_tests
         tests/domain/test_phase_three.cpp
@@ -121,6 +144,24 @@ if(BUILD_TESTING)
     target_link_libraries(domain_phase_three_tests PRIVATE novel_relation_domain)
     enable_project_warnings(domain_phase_three_tests)
     add_test(NAME domain_phase_three_tests COMMAND domain_phase_three_tests)
+    set_tests_properties(domain_phase_three_tests PROPERTIES
+        LABELS "unit"
+        TIMEOUT 30
+    )
+
+    add_executable(performance_phase_six_tests
+        tests/phase_six/test_phase_six_performance.cpp
+    )
+    target_link_libraries(performance_phase_six_tests
+        PRIVATE novel_relation_domain
+    )
+    enable_project_warnings(performance_phase_six_tests)
+    add_test(NAME performance_phase_six_tests
+             COMMAND performance_phase_six_tests)
+    set_tests_properties(performance_phase_six_tests PROPERTIES
+        LABELS "performance;phase-six"
+        TIMEOUT 60
+    )
 
     add_executable(infrastructure_phase_four_tests
         tests/infrastructure/test_phase_four.cpp
@@ -131,6 +172,24 @@ if(BUILD_TESTING)
     enable_project_warnings(infrastructure_phase_four_tests)
     add_test(NAME infrastructure_phase_four_tests
              COMMAND infrastructure_phase_four_tests)
+    set_tests_properties(infrastructure_phase_four_tests PROPERTIES
+        LABELS "unit;integration;corruption"
+        TIMEOUT 60
+    )
+
+    add_executable(infrastructure_phase_six_atomic_save_tests
+        tests/infrastructure/test_phase_six_atomic_save.cpp
+    )
+    target_link_libraries(infrastructure_phase_six_atomic_save_tests
+        PRIVATE novel_relation_domain
+    )
+    enable_project_warnings(infrastructure_phase_six_atomic_save_tests)
+    add_test(NAME infrastructure_phase_six_atomic_save_tests
+             COMMAND infrastructure_phase_six_atomic_save_tests)
+    set_tests_properties(infrastructure_phase_six_atomic_save_tests PROPERTIES
+        LABELS "unit;corruption;phase-six"
+        TIMEOUT 30
+    )
 
     add_executable(application_phase_five_tests
         tests/application/test_phase_five_application.cpp
@@ -141,6 +200,10 @@ if(BUILD_TESTING)
     enable_project_warnings(application_phase_five_tests)
     add_test(NAME application_phase_five_tests
              COMMAND application_phase_five_tests)
+    set_tests_properties(application_phase_five_tests PROPERTIES
+        LABELS "integration;corruption;user-flow"
+        TIMEOUT 60
+    )
 
     add_executable(presentation_graphics_phase_five_tests
         tests/presentation/test_graphics_phase_five.cpp
@@ -153,6 +216,8 @@ if(BUILD_TESTING)
              COMMAND presentation_graphics_phase_five_tests)
     set_tests_properties(presentation_graphics_phase_five_tests PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        LABELS "unit;user-flow"
+        TIMEOUT 60
     )
 
     add_executable(presentation_ui_phase_five_tests
@@ -166,5 +231,22 @@ if(BUILD_TESTING)
              COMMAND presentation_ui_phase_five_tests)
     set_tests_properties(presentation_ui_phase_five_tests PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        LABELS "integration;user-flow"
+        TIMEOUT 60
+    )
+
+    add_executable(presentation_phase_six_user_flow_tests
+        tests/presentation/test_phase_six_user_flows.cpp
+    )
+    target_link_libraries(presentation_phase_six_user_flow_tests
+        PRIVATE novel_relation_presentation Qt6::Test Qt6::Widgets
+    )
+    enable_project_warnings(presentation_phase_six_user_flow_tests)
+    add_test(NAME presentation_phase_six_user_flow_tests
+             COMMAND presentation_phase_six_user_flow_tests)
+    set_tests_properties(presentation_phase_six_user_flow_tests PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+        LABELS "integration;user-flow;phase-six"
+        TIMEOUT 60
     )
 endif()
